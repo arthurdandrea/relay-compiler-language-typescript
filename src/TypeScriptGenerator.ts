@@ -1,7 +1,6 @@
 import {
   Condition,
   Fragment,
-  IRVisitor,
   LinkedField,
   Root,
   ScalarField,
@@ -9,6 +8,7 @@ import {
   TypeGenerator,
   TypeID,
 } from "relay-compiler";
+import * as IRVisitor from "relay-compiler/lib/core/IRVisitor";
 import { TypeGeneratorOptions } from "relay-compiler/lib/language/RelayLanguagePluginInterface";
 import * as FlattenTransform from "relay-compiler/lib/transforms/FlattenTransform";
 import * as MaskTransform from "relay-compiler/lib/transforms/MaskTransform";
