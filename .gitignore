@@ -60,6 +60,7 @@ typings/
 .vscode
 .idea/
 /lib
+/es
 /bin
 
 .npmrc
