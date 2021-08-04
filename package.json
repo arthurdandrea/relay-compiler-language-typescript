@@ -34,6 +34,17 @@
     "lib",
     "es"
   ],
+  "exports": {
+    ".": {
+      "import": "./es/index.js",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json",
+    "./lib/*": {
+      "import": "./es/*.js",
+      "default": "./lib/*.js"
+    }
+  },
   "scripts": {
     "build": "rimraf lib && tsc --build tsconfig.build.json",
     "lint": "tslint -c tslint.json --project tsconfig.json",
