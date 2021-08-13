@@ -43,11 +43,49 @@ const DATA_REF = " $data";
 const FRAGMENT_REFS_TYPE_NAME = "FragmentRefs";
 const DIRECTIVE_NAME = "raw_response_type";
 
-export const generate: TypeGenerator["generate"] = (schema, node, options) => {
+export function configure(options: { useTypeImports: boolean }): TypeGenerator {
+  if (options.useTypeImports) {
+    return {
+      generate: generateWithTypeImports,
+      transforms,
+    };
+  } else {
+    return {
+      generate: generateWithoutTypeImports,
+      transforms,
+    };
+  }
+}
+
+const generateWithTypeImports: TypeGenerator["generate"] = (
+  schema,
+  node,
+  options
+) => {
   const ast: ts.Statement[] = aggregateRuntimeImports(
-    IRVisitor.visit(node, createVisitor(schema, options))
+    IRVisitor.visit(node, createVisitor(schema, options)),
+    true
   );
 
+  return printAst(ast);
+};
+
+const generateWithoutTypeImports: TypeGenerator["generate"] = (
+  schema,
+  node,
+  options
+) => {
+  const ast: ts.Statement[] = aggregateRuntimeImports(
+    IRVisitor.visit(node, createVisitor(schema, options)),
+    false
+  );
+
+  return printAst(ast);
+};
+
+export const generate = generateWithoutTypeImports;
+
+function printAst(ast: ts.Statement[]) {
   const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 
   const resultFile = ts.createSourceFile(
@@ -61,9 +99,9 @@ export const generate: TypeGenerator["generate"] = (schema, node, options) => {
   const fullProgramAst = ts.factory.updateSourceFile(resultFile, ast);
 
   return printer.printNode(ts.EmitHint.SourceFile, fullProgramAst, resultFile);
-};
+}
 
-function aggregateRuntimeImports(ast: ts.Statement[]) {
+function aggregateRuntimeImports(ast: ts.Statement[], useTypeImports = false) {
   const importNodes = ast.filter((declaration) =>
     ts.isImportDeclaration(declaration)
   ) as ts.ImportDeclaration[];
@@ -74,7 +112,7 @@ function aggregateRuntimeImports(ast: ts.Statement[]) {
       "relay-runtime"
   );
 
-  if (runtimeImports.length > 1) {
+  if (runtimeImports.length >= 1) {
     const namedImports: string[] = [];
     runtimeImports.map((node) => {
       (node.importClause!.namedBindings! as ts.NamedImports).elements.map(
@@ -98,7 +136,7 @@ function aggregateRuntimeImports(ast: ts.Statement[]) {
     const aggregatedRuntimeImportDeclaration = ts.createImportDeclaration(
       undefined,
       undefined,
-      ts.factory.createImportClause(false, undefined, namedBindings),
+      ts.factory.createImportClause(useTypeImports, undefined, namedBindings),
       ts.factory.createStringLiteral("relay-runtime")
     );
 
