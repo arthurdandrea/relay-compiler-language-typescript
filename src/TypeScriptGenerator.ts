@@ -113,39 +113,43 @@ function aggregateRuntimeImports(ast: ts.Statement[], useTypeImports = false) {
   );
 
   if (runtimeImports.length >= 1) {
-    const namedImports: string[] = [];
-    runtimeImports.map((node) => {
-      (node.importClause!.namedBindings! as ts.NamedImports).elements.map(
-        (element) => {
-          namedImports.push(element.name.text);
-        }
-      );
-    });
-
-    const importSpecifiers: ts.ImportSpecifier[] = [];
-    namedImports.map((namedImport) => {
-      const specifier = ts.factory.createImportSpecifier(
-        false,
-        undefined,
-        ts.factory.createIdentifier(namedImport)
-      );
-      importSpecifiers.push(specifier);
-    });
-
-    const namedBindings = ts.createNamedImports(importSpecifiers);
-    const aggregatedRuntimeImportDeclaration = ts.createImportDeclaration(
-      undefined,
-      undefined,
-      ts.factory.createImportClause(useTypeImports, undefined, namedBindings),
-      ts.factory.createStringLiteral("relay-runtime")
+    const namedImports = runtimeImports.flatMap((node) =>
+      (node.importClause!.namedBindings! as ts.NamedImports).elements.flatMap(
+        (element) => (element.name ? [element.name.text] : [])
+      )
     );
+
+    const preservedImports: ts.ImportDeclaration[] = [];
+    if (namedImports.length) {
+      const importSpecifiers = namedImports.map((namedImport) =>
+        ts.factory.createImportSpecifier(
+          false,
+          undefined,
+          ts.factory.createIdentifier(namedImport)
+        )
+      );
+
+      const namedBindings = ts.factory.createNamedImports(importSpecifiers);
+      const aggregatedRuntimeImportDeclaration =
+        ts.factory.createImportDeclaration(
+          undefined,
+          undefined,
+          ts.factory.createImportClause(
+            useTypeImports,
+            undefined,
+            namedBindings
+          ),
+          ts.factory.createStringLiteral("relay-runtime")
+        );
+      preservedImports.push(aggregatedRuntimeImportDeclaration);
+    }
 
     const aggregatedRuntimeImportAST = ast.reduce<ts.Statement[]>(
       (prev, curr) => {
         if (!ts.isImportDeclaration(curr)) prev.push(curr);
         return prev;
       },
-      [aggregatedRuntimeImportDeclaration]
+      preservedImports
     );
 
     return aggregatedRuntimeImportAST;
